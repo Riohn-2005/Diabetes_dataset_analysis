@@ -1,0 +1,439 @@
+---
+title: "Assignment"
+author: "JOHN ROZARIO"
+date: "31 March 2025"
+format: pdf
+institute: Department of Polymer and Surface Engineering, ICT Mumbai
+---
+
+# Introduction
+
+The Pima Indians Diabetes Database (PIDD) is a well-known dataset available on Kaggle, originally from the National Institute of Diabetes and Digestive and Kidney Diseases.
+
+**Population:** The dataset focuses on females aged 21 years and older from the Pima Indian population in the U.S.
+
+**Size:** 768 instances (rows)
+
+**Features:** 8 independent variables + 1 target variable (Outcome)
+
+-   **Pregnancies** : Number of times the patient was pregnant
+-   **Glucose** : Plasma glucose concentration (mg/dL) from a 2-hour oral glucose tolerance test
+-   **BloodPressure** : Diastolic blood pressure (mm Hg)
+-   **SkinThickness** : Triceps skinfold thickness (mm)
+-   **Insulin** : 2-hour serum insulin (mu U/ml)
+-   **BMI** : Body Mass Index (weight in kg / height in m²)
+-   **DiabetesPedigreeFunction :** A function that scores the likelihood of diabetes based on family history
+-   **Age** : Age in years
+-   **Outcome** :0 = No diabetes, 1 = Diabetes (Target variable)
+
+## Data Inspection
+
+```{r}
+data = read.csv("~/Desktop/Assignment/diabetes.csv")
+head(data)
+#summary(data)
+```
+
+**Continuous Variables**: `Glucose`, `BloodPressure`, `SkinThickness`, `Insulin`, `BMI` , `DiabetesPedigreeFunction` , `Age`
+
+**Categorical Variables**: `Pregnancies`, `Outcome`
+
+## Cleaning Data
+
+```{r}
+# Replace 0 values with NA for selected columns
+data$Glucose[data$Glucose == 0] = NA
+data$BloodPressure[data$BloodPressure == 0] = NA
+data$BMI[data$BMI == 0] = NA 
+data$Insulin[data$Insulin == 0] = NA
+data$SkinThickness[data$SkinThickness == 0] = NA
+diabetes_data = data[data$Outcome == 1, ]
+no_diabetes_data = data[data$Outcome == 0, ]
+
+```
+
+***Observations:***
+
+👉There are missing values or zero entries in `Glucose`, `BloodPressure`, `Insulin`, `SkinThickness` and `BMI`, which were handled appropriately.
+
+## Exploration of Continuous Variables
+
+### Box Plot for Continuous Variables
+
+```{r}
+continuous_vars = c("Glucose", "BloodPressure", "SkinThickness",
+                    "Insulin", "BMI" , 
+                    "DiabetesPedigreeFunction", "Age")
+
+par(mfrow= c(1,3))
+for (var in continuous_vars) {
+  boxplot(data[[var]], main = paste("Boxplot of", var),
+       col = "beige", xlab = var, border = "brown", 
+       probability = TRUE)
+  
+  boxplot(diabetes_data[[var]], main = paste("Boxplot of", var,"\n",
+                                             "for Diabetic"),
+       col = "pink", xlab = var, border = "red", 
+       probability = TRUE)
+  boxplot(no_diabetes_data[[var]], main = paste("Boxplot of", var,"\n",
+                                                "for Non-Diabetic"),
+       col = "lightblue", xlab = var, border = "blue", 
+       probability = TRUE)
+  # Outliers
+  print( 'Outliers are' )
+  print(boxplot.stats(data[[var]])[4])
+}
+```
+
+### Histogram to observe the distribution.
+
+```{r}
+par(mfrow = c(2, 3)) 
+continuous_vars = c("Glucose", "BloodPressure", "SkinThickness",
+                    "Insulin", "BMI" , 
+                    "DiabetesPedigreeFunction", "Age")
+for (var in continuous_vars) {
+  hist(data[[var]], main = paste("Histogram of", var),
+       col = "beige", xlab = var, border = "brown4", 
+       probability = TRUE)
+}
+```
+
+### Violin Plot for Continuous variables
+
+```{r}
+library(ggplot2)
+par(mfrow = c(3, 1)) 
+data$Outcome <- factor(data$Outcome, labels = c("NON-Diabetic", "Diabetic"))
+
+ggplot(data, aes(x = as.factor(Outcome), y =BMI )) +
+  labs(title = "BMI Distribution by Diabetes Outcome",
+       x = "Diabetes Outcome (0 = No, 1 = Yes)", 
+       y = "BMI") +
+  geom_violin(aes(fill = Outcome)) +theme_classic()+
+  geom_boxplot(width = 0.2,position = position_dodge(0.9))
+
+ggplot(data, aes(x = as.factor(Outcome), y =Age )) +
+  labs(title = "Age Distribution by Diabetes Outcome",
+       x = "Diabetes Outcome (0 = No, 1 = Yes)", 
+       y = "Age") +
+  geom_violin(aes(fill = Outcome)) +theme_classic()+
+  geom_boxplot(width = 0.2,position = position_dodge(0.9))
+
+```
+
+***Observations:***
+
+👉Outliers in `Insulin` and `Glucose` suggest extreme values, which may indicate measurement errors or actual physiological differences.
+
+👉`BloodPressure` and `SkinThickness` have fewer outliers compared to `Insulin`.
+
+👉The distribution of `Glucose` is **right-skewed**, meaning most individuals have normal glucose, while some have very high levels.
+
+👉`Insulin` and `Age` is highly skewed.
+
+## Normality Check
+
+The Shapiro-Wilk test checks whether a variable follows a normal distribution. If the **p-value \< 0.05**, we **reject** the **`null hypothesis`**, meaning the data is **not normally distributed.**
+
+```{r}
+continuous_vars = c("Glucose", "BloodPressure", "SkinThickness",
+                    "Insulin", "BMI" , 
+                    "DiabetesPedigreeFunction", "Age")
+for (var in continuous_vars) {
+  test_result = shapiro.test(data[[var]])
+  print(paste("Shapiro-Wilk test for", var) )
+  print(paste("p-value is ",test_result$p.value))
+}
+```
+
+***Observations**:*
+
+👉The **p-values for all continuous variables are \< 0.05**, indicating that none of them follow a normal distribution.
+
+## Exploration of Categorical Variables
+
+### Bar plot for Categorical Variables
+
+```{r}
+
+barplot(table(data$Pregnancies), col = "steelblue", 
+        main = "Frequency of Pregnancies Categories", 
+        xlab = "Pregnancies", ylab = "Count")
+
+barplot(table(data$Outcome), col = "darkorange", 
+        main = "Frequency of Outcome", 
+        xlab = "Outcome", ylab = "Count")
+
+```
+
+### Pie Chart for Categorical Variables
+
+```{r}
+pie(table(data$Pregnancies), 
+    col = rainbow(length(table(data$Pregnancies))), 
+    main = "Proportion of Pregnancies Categories")
+pie(table(data$Outcome), 
+    col = rainbow(length(table(data$Outcome))), 
+    main = "Proportion of Outcome")
+```
+
+***Observations:***
+
+👉`35%` of individuals are diabetic (`Outcome = 1`), while `65%` are non-diabetic.
+
+👉There is an imbalance in the dataset.
+
+## Relationship Between Variables
+
+```{r}
+par(mfrow= c(1,2))
+boxplot(Glucose~Outcome, data = data, 
+        col = rainbow(length(table(data$Outcome))), 
+        main = "Glucose VS Outcome",
+        xlab = "Diabetes Outcome (0 = No, 1 = Yes)", 
+        ylab = "glucose concentration (mg/dL)")
+
+
+boxplot(Glucose~ Pregnancies, data = data, 
+        col = rainbow(length(table(data$Pregnancies))), 
+        main = "Glucose VS Pregnancies",
+        xlab = "No. of Pregnancies", 
+        ylab = "glucose concentration (mg/dL)")
+
+
+par(mfrow= c(1,2))
+boxplot(BMI~Outcome, data = data, 
+        col = rainbow(length(table(data$Outcome))), 
+        main = "BMI VS Outcome",
+        xlab = "Diabetes Outcome (0 = No, 1 = Yes)", 
+        ylab = "BMI")
+
+
+boxplot(BMI~ Pregnancies, data = data, 
+        col = rainbow(length(table(data$Pregnancies))), 
+        main = "BMI VS Pregnancies",
+        xlab = "No. of Pregnancies", 
+        ylab = "BMI")
+
+
+par(mfrow= c(1,2))
+boxplot(Age~Outcome, data = data, 
+        col = rainbow(length(table(data$Outcome))), 
+        main = "BMI VS Outcome",
+        xlab = "Diabetes Outcome (0 = No, 1 = Yes)", 
+        ylab = "BMI")
+
+
+boxplot(Age~ Pregnancies, data = data, 
+        col = rainbow(length(table(data$Pregnancies))), 
+        main = "BMI VS Pregnancies",
+        xlab = "No. of Pregnancies", 
+        ylab = "BMI")
+
+```
+
+***Observations**:*
+
+👉Higher `Glucose` levels tend to be associated with diabetic individuals (`Outcome = 1`).
+
+👉The median `BMI` for diabetics is higher than for non-diabetics, suggesting a potential relationship.
+
+👉`Age` and `DiabetesPedigreeFunction` show noticeable differences between the groups.
+
+👉`Glucose` is a strong differentiating factor between diabetic and non-diabetic groups.
+
+👉Other factors like `BMI` and `Age` also play a role but may not be as strong as `Glucose`.
+
+## Correlation Matrix
+
+```{r, fig.width=8, fig.height=8}
+num_data <- data[, sapply(data, is.numeric)]  
+cor_matrix <- cor(num_data, use = "pairwise.complete.obs", method = "pearson")  
+
+library(corrplot)  
+
+# Plot the correlation matrix with larger figure size
+corrplot(cor_matrix, method = "color", tl.col = "black", addCoef.col = "black")  
+```
+
+## Logistic Regression
+
+```{r eval=FALSE}
+
+# logistic regression
+fit = glm(formula = Outcome~ Glucose,
+          data = data, family = "binomial")
+summary(fit)
+
+plot(data$Outcome ~ data$Glucose, data = data, pch = 1)
+
+b_hat = coefficients(fit)
+#b_hat
+b_hat[1] # b0_hat
+b_hat[2] # b1_hat
+
+prob_vals = exp(b_hat[1] + b_hat[2]*data$Glucose)/(1+exp(b_hat[1] + b_hat[2]*data$Glucose))
+points(data$Glucose, prob_vals, col = "blue", pch = 1,
+       lwd = 2)
+
+Glucose_vals = seq(0,210, by = 0.1)
+prob_vals = exp(b_hat[1] + b_hat[2]*Glucose_vals)/(1+exp(b_hat[1] + b_hat[2]*Glucose_vals))
+
+lines(Glucose_vals, prob_vals, col = "magenta", lwd = 2, lty = 2)
+
+```
+
+![](/Users/johncambellrozario/Desktop/Assignment/Logistic%20Regr.jpeg)
+
+## Distribution of Test Error Rate (1000 Replications)
+
+```{r}
+# Set seed for reproducibility
+set.seed(123)
+train = sample(1:nrow(data), 0.7*nrow(data))
+train_data = data[train, ]
+
+
+fit = glm(formula = Outcome~ Glucose,
+          data = data, family = "binomial")
+
+# training data
+newdata = data.frame(Glucose= train_data$Glucose)
+train_pred_prob = predict.glm(fit, newdata = newdata, 
+                              type = "response")
+train_pred_Outcome = ifelse(train_pred_prob>0.5, 1, 0)
+train_confusion_mat = table(train_data$Outcome, train_pred_Outcome)
+print(train_confusion_mat)
+
+
+# performance on test data
+test_data = data[ -train,]
+newdata = data.frame(Glucose = test_data$Glucose)
+test_pred_prob = predict.glm(fit, newdata = newdata, 
+                             type = "response")
+test_pred_Outcome = ifelse(test_pred_prob> 0.5, 1, 0)
+test_confusion_mat = table(test_data$Outcome, test_pred_Outcome)
+print(test_confusion_mat)
+
+# Computation of average test error rate
+
+rep = 1000
+train_confusion_mat = list()
+test_confusion_mat = list()
+
+for (i in 1:rep) {
+  set.seed(i)
+  
+  train = sample(1:nrow(data), 0.7*nrow(data))
+  train_data = data[train, ]
+  
+  fit = glm(formula = Outcome~ Glucose,
+            data = data, family = "binomial")
+  
+  # training data
+  newdata = data.frame(Glucose= train_data$Glucose)
+  train_pred_prob = predict.glm(fit, newdata = newdata, 
+                                type = "response")
+  train_pred_Outcome = ifelse(train_pred_prob>0.5, 1, 0)
+  train_confusion_mat[[i]] = table(train_data$Outcome, train_pred_Outcome)
+  
+  # performance on test data
+  test_data = data[ -train,]
+  newdata = data.frame(Glucose = test_data$Glucose)
+  test_pred_prob = predict.glm(fit, newdata = newdata, 
+                               type = "response")
+  test_pred_Outcome = ifelse(test_pred_prob> 0.5, 1, 0)
+ 
+  test_confusion_mat[[i]] = table(test_data$Outcome, test_pred_Outcome)
+}
+
+#train_confusion_mat
+#test_confusion_mat
+
+train_misclass = rep(NA, rep)
+test_misclass = rep(NA, rep)
+
+library(matrixcalc)
+for (i in 1:rep) {
+  train_misclass[i] = 1 - sum(diag(as.matrix(train_confusion_mat[[i]]))) / nrow(train_data)
+
+  
+    
+  
+  if(is.square.matrix(test_confusion_mat[[i]]) == TRUE){
+    test_misclass[i] = 1 - sum(diag(as.matrix(test_confusion_mat[[i]]))) / nrow(test_data)
+  }
+}
+
+test_misclass = test_misclass[!is.na(test_misclass)]
+head(test_misclass)
+#length(test_misclass) # just to see it is 1000
+
+par(mfrow = c(1,2))
+boxplot(train_misclass, lwd  = 2,
+        main = "Distribution of training \n error rate")
+boxplot(test_misclass, lwd = 2,
+        main = "Distribution of test \n error rate")
+```
+
+## K-Fold Cross-Validation Results
+
+```{r}
+library(caret)
+
+# Set up 10-fold cross-validation
+set.seed(123)
+K = 10
+cv_folds = createFolds(data$Outcome, k = K, list = TRUE)
+
+# Initialize vector to store misclassification errors
+cv_errors = rep(NA, K)
+
+# Loop through each fold
+for (i in 1:K) {
+  # Split data into training and test sets
+  test_indices = cv_folds[[i]]
+  test_data = data[test_indices, ]
+  train_data = data[-test_indices, ]
+  
+  # Train logistic regression on training data
+  fit = glm(Outcome ~ Glucose, data = train_data, family = "binomial")
+  
+  # Predict on test data
+  test_pred_prob = predict(fit, newdata = test_data, type = "response")
+  test_pred_Outcome = ifelse(test_pred_prob > 0.5, 1, 0)
+  
+  # Compute misclassification error for this fold
+  test_conf_mat = table(test_data$Outcome, test_pred_Outcome)
+  cv_errors[i] = 1 - sum(diag(test_conf_mat)) / sum(test_conf_mat)
+}
+
+# Compute average misclassification error across all folds
+avg_misclassification_error = mean(cv_errors)
+
+# Print the result
+cat("Average Misclassification Error using", K, "-fold Cross-Validation:", avg_misclassification_error, "\n")
+```
+
+Observations:
+
+👉 Average misclassification error across K-folds: 25.44113%.
+
+👉 Variability in error rates suggests that the model’s performance depends on the training data split.
+
+👉 If variance in error rates is high, the dataset might benefit from more training data or feature selection.
+
+## Final Summary & Recommendations
+
+**Key Variables for Diabetes Prediction:**
+
+👉Glucose, BMI, and Age show the strongest relationships with diabetes.
+
+👉Insulin is highly skewed and may require transformation.
+
+**Model Performance:**
+
+👉The test error rate is moderate/high, indicating potential overfitting or missing features.
+
+👉K-Fold cross-validation helps ensure more reliable performance estimates.
